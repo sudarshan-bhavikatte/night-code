@@ -5,10 +5,16 @@ A terminal-based AI coding agent.
 ## Requirements
 
 - [Bun](https://bun.sh) v1.0+
-- PostgreSQL database (e.g. [Neon](https://neon.tech))
-- Clerk application (OAuth)
-- OpenAI or Anthropic API key
-- Polar account (billing/credits)
+- [Ollama](https://ollama.com) installed and running locally (`ollama serve`)
+- At least one **tool-calling capable** chat model pulled, e.g. `ollama pull llama3.2`
+
+The database is a local SQLite file — no separate database server needed.
+
+> **Model note:** NightCode is agentic and depends on structured tool calling
+> (reading/writing files, running commands). Only use models that support the
+> "Tools" capability (see https://ollama.com/search?c=tools). Models without it
+> — including `qwen2.5-coder` — will print tool calls as plain JSON text
+> instead of executing them, so no files get created.
 
 ## Setup
 
@@ -28,22 +34,20 @@ Fill in `.env`:
 
 ```env
 API_URL=http://localhost:3000
-DATABASE_URL=
 
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
+# SQLite database file (relative paths are resolved from packages/database)
+DATABASE_URL=file:./dev.db
 
-CLERK_FRONTEND_API=
-CLERK_OAUTH_CLIENT_ID=
-CLERK_OAUTH_CLIENT_SECRET=
-CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-JWT_SECRET=jwt-secret
+# Optional: override if Ollama runs on another host/port
+# OLLAMA_BASE_URL=http://localhost:11434
+```
 
-POLAR_ACCESS_TOKEN=
-POLAR_PRODUCT_ID=
-POLAR_SERVER=sandbox
-POLAR_CREDITS_METER_ID=
+The default models are defined in `packages/shared/src/models.ts`. Make sure
+you've pulled the ones you want to use, for example:
+
+```bash
+ollama pull llama3.2
+ollama pull llama3.1
 ```
 
 **3. Generate Prisma client**

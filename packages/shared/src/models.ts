@@ -1,80 +1,44 @@
-export type ModelPricing = {
-  inputUsdPerMillionTokens: number;
-  outputUsdPerMillionTokens: number;
-};
-
-export type SupportedProvider = "anthropic" | "openai" | "google";
+export type SupportedProvider = "ollama";
 
 type SupportedChatModelDefinition = {
   id: string;
   provider: SupportedProvider;
-  pricing: ModelPricing;
 };
 
+// These ids map directly to models pulled into your local Ollama install,
+// e.g. `ollama pull llama3.1`. Add or remove entries here to match what you
+// have available locally (`ollama list`).
+//
+// IMPORTANT: NightCode is agentic and relies on structured tool calling. Only
+// list models whose Ollama template emits native tool calls (they show up
+// under the "Tools" capability on https://ollama.com/search?c=tools). Models
+// without this support will just print the tool call as JSON text instead of
+// executing it, so files never get created. Notably `qwen2.5-coder:latest`
+// does NOT reliably emit tool calls and is intentionally omitted.
 export const SUPPORTED_CHAT_MODELS = [
   {
-    id: "claude-sonnet-4-6",
-    provider: "anthropic",
-    pricing: {
-      inputUsdPerMillionTokens: 3,
-      outputUsdPerMillionTokens: 15,
-    },
+    id: "llama3.2",
+    provider: "ollama",
   },
   {
-    id: "claude-haiku-4-5",
-    provider: "anthropic",
-    pricing: {
-      inputUsdPerMillionTokens: 1,
-      outputUsdPerMillionTokens: 5,
-    },
+    id: "llama3.1",
+    provider: "ollama",
   },
   {
-    id: "claude-opus-4-6",
-    provider: "anthropic",
-    pricing: {
-      inputUsdPerMillionTokens: 5,
-      outputUsdPerMillionTokens: 25,
-    },
+    id: "qwen3",
+    provider: "ollama",
   },
   {
-    id: "gpt-5.4",
-    provider: "openai",
-    pricing: {
-      inputUsdPerMillionTokens: 2.5,
-      outputUsdPerMillionTokens: 15,
-    },
+    id: "mistral",
+    provider: "ollama",
   },
   {
-    id: "gpt-5.4-mini",
-    provider: "openai",
-    pricing: {
-      inputUsdPerMillionTokens: 0.75,
-      outputUsdPerMillionTokens: 4.5,
-    },
+    id: "mistral-nemo",
+    provider: "ollama",
   },
   {
-    id: "gpt-5.4-nano",
-    provider: "openai",
-    pricing: {
-      inputUsdPerMillionTokens: 0.2,
-      outputUsdPerMillionTokens: 1.25,
-    },
-  },
-  {
-    id: "gemini-2.5-pro",
-    provider: "google",
-    pricing: {
-      inputUsdPerMillionTokens: 3.5,
-      outputUsdPerMillionTokens: 10.5,
-    },
-  },
-  {
-    id: "gemini-3.6-flash",
-    provider: "google",
-    pricing: {
-      inputUsdPerMillionTokens: 0.075,
-      outputUsdPerMillionTokens: 0.3,
-    },
+    id: "firefunction-v2",
+    provider: "ollama",
   },
 ] as const satisfies readonly SupportedChatModelDefinition[];
 
@@ -85,4 +49,4 @@ export function findSupportedChatModel(modelId: string) {
   return SUPPORTED_CHAT_MODELS.find((model) => model.id === modelId);
 }
 
-export const DEFAULT_CHAT_MODEL_ID: SupportedChatModelId = "gemini-3.6-flash";
+export const DEFAULT_CHAT_MODEL_ID: SupportedChatModelId = "llama3.2";

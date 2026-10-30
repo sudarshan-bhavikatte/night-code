@@ -1,6 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import { createOllama, ollama as defaultOllama } from "ai-sdk-ollama";
 import {
   findSupportedChatModel,
   type SupportedChatModel,
@@ -10,10 +8,6 @@ import {
 import type { ProviderOptions } from "@ai-sdk/provider-utils";
 import type { LanguageModel } from "ai";
 
-type AnthropicModelId = Extract<SupportedChatModel, { provider: "anthropic" }>["id"];
-type OpenAIModelId = Extract<SupportedChatModel, { provider: "openai" }>["id"];
-type GeminiModelId = Extract<SupportedChatModel, { provider: "google" }>["id"];
-
 export type ResolvedModel = {
   model: LanguageModel;
   provider: SupportedProvider;
@@ -21,78 +15,34 @@ export type ResolvedModel = {
   providerOptions?: ProviderOptions;
 };
 
-const ANTHROPIC_PROVIDER_OPTIONS: Partial<Record<AnthropicModelId, ProviderOptions>> = {
-  "claude-opus-4-6": {
-    anthropic: {
-      thinking: {
-        type: "enabled",
-        budgetTokens: 10000,
-      }
-    },
-  },
-  "claude-sonnet-4-6": {
-    anthropic: {
-      thinking: {
-        type: "enabled",
-        budgetTokens: 10000,
+// Point at a non-default Ollama host (e.g. a remote machine) with
+// OLLAMA_BASE_URL. Falls back to the local daemon at http://localhost:11434.
+const ollama = process.env.OLLAMA_BASE_URL
+  ? createOllama({ baseURL: process.env.OLLAMA_BASE_URL })
+  : defaultOllama;
+
+function resolveOllamaModel(modelId: SupportedChatModelId): ResolvedModel {
+  return {
+    model: ollama(modelId, {
+      options: {
+        // Ollama defaults to a 2048-token context, which small models quickly
+        // blow through once the system prompt + tool schemas + a few turns are
+        // in play. When that happens the model "forgets" it has tools and
+        // starts printing tool calls as plain JSON text. A larger window keeps
+        // tool calling reliable across a multi-step conversation.
+        num_ctx: 8192,
+        // Deterministic sampling makes tool-call formatting far more reliable
+        // on small local models.
+        temperature: 0,
       },
-    },
-  },
-};
-
-const OPENAI_PROVIDER_OPTIONS: Partial<Record<OpenAIModelId, ProviderOptions>> = {
-  "gpt-5.4": {
-    openai: {
-      thinking: {
-        reasoningSummary: "detailed",
-      }
-    },
-  },
-};
-
-function assertUnsupportedProvider(provider: never): never {
-  throw new Error(`Unsupported provider: ${provider}`);
-};
-
-function resolveAnthropicModel(modelId: AnthropicModelId): ResolvedModel {
-  return {
-    model: anthropic(modelId),
-    provider: "anthropic",
-    modelId,
-    providerOptions: ANTHROPIC_PROVIDER_OPTIONS[modelId],
-  };
-};
-
-function resolveOpenAIModel(modelId: OpenAIModelId): ResolvedModel {
-  return {
-    model: openai(modelId),
-    provider: "openai",
-    modelId,
-    providerOptions: OPENAI_PROVIDER_OPTIONS[modelId],
-  };
-};
-
-function resolveGoogleModel(modelId: GeminiModelId): ResolvedModel {
-  return {
-    model: google(modelId),
-    provider: "google",
+    }),
+    provider: "ollama",
     modelId,
   };
 };
 
 function resolveSupportedChatModel(model: SupportedChatModel): ResolvedModel {
-  const provider = model.provider;
-
-  switch (provider) {
-    case "anthropic":
-      return resolveAnthropicModel(model.id);
-    case "openai":
-      return resolveOpenAIModel(model.id);
-    case "google":
-      return resolveGoogleModel(model.id);
-    default:
-      return assertUnsupportedProvider(provider);
-  }
+  return resolveOllamaModel(model.id);
 };
 
 export function isSupportedChatModel(modelId: string): modelId is SupportedChatModelId {
